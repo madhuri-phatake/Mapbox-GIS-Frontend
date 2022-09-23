@@ -5,18 +5,14 @@
       href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.3.0/mapbox-gl-draw.css"
       type="text/css"
     />
+    <link
+      rel="stylesheet"
+      href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.css"
+      type="text/css"
+    />
   </head>
   <div>
     <div>
-      <!-- <div class="mapboxgl-ctrl-geocoder mapboxgl-ctrl">
-          <input type="text" class="mapboxgl-ctrl-geocoder--input" placeholder="Search" aria-label="Search">
-          <div class="suggestions-wrapper">
-              <ul class="suggestions"></ul>
-          </div>
-          <div class="mapboxgl-ctrl-geocoder--pin-right">
-              <button aria-label="Clear" class="mapboxgl-ctrl-geocoder--button"></button>
-          </div>
-      </div> -->
       <select id="layer-change">
         <option selected value="mapbox://styles/mapbox/streets-v11">
           Dark
@@ -45,21 +41,30 @@
         <div class="pre">
           <pre id="info"></pre>
         </div>
+        <input
+          type="file"
+          id="fileData"
+          class="filefun"
+          @change="uploadCsvFile"
+        />
       </v-map>
     </main>
     <div id="map"></div>
   </div>
 </template>
+
 <script setup lang="ts">
-import mapboxgl from "mapbox-gl";
+// import mapboxgl from "mapbox-gl";
+
 import VMap from "v-mapbox";
+import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
-
+import MapboxDirection from "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
-// function upload() {
-//     console.log("hii");
-// }
+// import MapboxDirections from "@mapbox/mapbox-gl-directions";
+import { reactive } from "vue";
+
 const data = reactive({
   options: {
     accessToken:
@@ -85,9 +90,13 @@ let allStud = reactive({
 allStud.mapData = await $fetch("http://localhost:3001/location/");
 console.log("map data", allStud.mapData);
 async function onMapLoaded(map: mapboxgl.Map) {
+  map.addControl(
+    new MapboxDirection({
+      accessToken: mapboxgl.accessToken,
+    }),
+    "top-right"
+  );
   //   Marker Starts
-  //   data.map=map;
-
   allStud.mapData.map((ele) => {
     new mapboxgl.Marker({
       draggable: true,
@@ -106,7 +115,6 @@ async function onMapLoaded(map: mapboxgl.Map) {
     mapboxgl: mapboxgl,
   });
   data.map.addControl(geocoder);
-  // console.log('on map laoded: ', map);
 
   //add polygon using backend
   let pointsData1 = [];
@@ -121,16 +129,7 @@ async function onMapLoaded(map: mapboxgl.Map) {
       type: "Feature",
       geometry: {
         type: "Polygon",
-        coordinates: [
-          pointsData1,
-          // [
-          //   [73.68942260742188, 18.530398219358684],
-          //   [73.65509033203125, 18.340187242207897],
-          //   [73.99154663085938, 18.359739156553683],
-          //   [73.99429321289062, 18.641040231399984],
-          //   [73.68942260742188, 18.530398219358684],
-          // ],
-        ],
+        coordinates: [pointsData1],
       },
     },
   });
@@ -158,13 +157,11 @@ async function onMapLoaded(map: mapboxgl.Map) {
       geometry: {
         type: "LineString",
         coordinates: [
-          // [
           [73.68942260742188, 18.530398219358684],
           [73.65509033203125, 18.340187242207897],
           [73.99154663085938, 18.359739156553683],
           [73.99429321289062, 18.641040231399984],
           [73.68942260742188, 18.530398219358684],
-          // ],
         ],
       },
     },
@@ -212,6 +209,25 @@ async function onMapLoaded(map: mapboxgl.Map) {
     document.getElementById("info").innerHTML =
       JSON.stringify(e.point) + "<br />" + JSON.stringify(e.lngLat.wrap());
   });
+}
+async function uploadCsvFile(event) {
+  console.log("event", event);
+  let formData = new FormData();
+  let file = document.getElementById("fileData") as HTMLInputElement | null;
+
+  console.log("formData111111", file.files[0]);
+
+  formData.append("file", file.files[0]);
+  console.log("formData", formData);
+
+  console.log("file", file);
+
+  let response = await fetch("http://localhost:3001/location/upload", {
+    method: "POST",
+    // body: payload,
+    body: formData,
+  });
+  console.log("res", response);
 }
 </script>
 <style>
@@ -265,5 +281,10 @@ body {
   width: 30%;
   height: 9%;
   background-color: white;
+}
+.filefun {
+  z-index: 1;
+  position: relative;
+  top: 25px;
 }
 </style>
